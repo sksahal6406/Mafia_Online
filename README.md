@@ -22,6 +22,14 @@ npm run build
 npm start            # PORT=3000 by default
 ```
 
+### Health check
+
+`GET /health` returns `200` with `{"status":"ok","uptimeSeconds":…,"rooms":…}` (also answers `HEAD`). It does not touch Next.js and exposes no player data. Use it as the health-check path on Render, Railway or Fly.
+
+### Deploying (Render, Railway, Fly, a VPS)
+
+One Node process serves the pages, the game and the video signaling, so deploy the whole app once to a host that keeps a server running (not Vercel). Build command `npm install && npm run build`, start command `npm start`, **one instance only** (rooms live in memory), health-check path `/health`.
+
 ### Playing with friends
 
 Camera and microphone only work on HTTPS or `localhost`. To play with other people, expose your machine over HTTPS, for example:
