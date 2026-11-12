@@ -63,13 +63,13 @@ async function newPlayer(browser, name, code) {
   if (!code) {
     await page.goto(BASE);
     await page.fill('#name', name);
-    await page.click('button:has-text("Create a room")');
+    await page.click('button:has-text("Host a new game")');
     await page.waitForFunction(() => /\/room\/[A-Z0-9]{5}/.test(location.pathname), null, { timeout: 15000 });
     code = page.url().split('/').pop();
   } else {
     await page.goto(`${BASE}/room/${code}`);
     await page.fill('#jname', name);
-    await page.click('button:has-text("Join room")');
+    await page.click('button:has-text("Take a seat")');
   }
   await page.waitForSelector('text=Game rules');
   return { name, page, code, ctx };

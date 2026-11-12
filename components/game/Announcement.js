@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { roleInfo } from '@/lib/roles';
+import { RoleIcon } from '../ui/icons';
 
 /** Dawn and verdict results, in the host's wording from the rules. */
 export default function Announcement({ view }) {
@@ -17,7 +18,7 @@ export default function Announcement({ view }) {
     body = n.victim ? (
       <Elim who={name(n.victim)} role={n.role} verb="was eliminated" />
     ) : (
-      <p className="font-display text-3xl">Nobody was eliminated last night.</p>
+      <p className="font-display text-3xl font-semibold">Nobody was eliminated last night.</p>
     );
   }
 
@@ -41,9 +42,9 @@ export default function Announcement({ view }) {
         )}
         <ul className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
           {rows.map(([id, n]) => (
-            <li key={id} className="rounded-full border border-line bg-panel-2 px-3 py-1">{name(id)}: <b>{n}</b></li>
+            <li key={id} className="chip !text-sm !px-3 !py-1">{name(id)}: <b>{n}</b></li>
           ))}
-          {v.abstain > 0 && <li className="rounded-full border border-line px-3 py-1 text-mute">Abstained: {v.abstain}</li>}
+          {v.abstain > 0 && <li className="chip !text-sm !px-3 !py-1 text-mute">Abstained: {v.abstain}</li>}
         </ul>
       </>
     );
@@ -51,7 +52,7 @@ export default function Announcement({ view }) {
 
   if (!body) return null;
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-line bg-panel p-6 text-center">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border-2 border-line bg-panel p-6 text-center shadow-[4px_4px_0_0_#000]">
       {body}
     </motion.div>
   );
@@ -61,11 +62,11 @@ function Elim({ who, role, verb }) {
   const info = roleInfo(role);
   return (
     <>
-      <p className="font-display text-3xl">
+      <p className="font-display text-3xl font-semibold">
         <span className="text-blood">{who}</span> {verb}.
       </p>
       <p className="mt-2 text-lg">
-        Their role was <b className={info.color}>{info.emoji} {info.name}</b>.
+        Their role was <b className={`inline-flex items-center gap-1 align-bottom ${info.color}`}><RoleIcon role={role} className="h-5 w-5" /> {info.name}</b>.
       </p>
     </>
   );

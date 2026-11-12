@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence } from 'framer-motion';
+import { Eye, VenetianMask, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
 import { getActionMode } from '@/lib/actions';
 import { isNight } from '@/lib/phases';
@@ -32,10 +33,10 @@ export default function GameScreen({ view }) {
   const marksFor = (p) => {
     const marks = [];
     for (const [voter, target] of Object.entries(night ? mafiaVotes : {})) {
-      if (target === p.id) marks.push({ label: `🔪 ${view.players.find((x) => x.id === voter)?.name}`, title: 'Mafia vote' });
+      if (target === p.id) marks.push({ Icon: VenetianMask, tone: 'text-blood', label: view.players.find((x) => x.id === voter)?.name, title: 'Mafia vote' });
     }
     for (const f of findings) {
-      if (f.target === p.id) marks.push({ label: f.isMafia ? '🔍 Mafia' : '🔍 Clear', title: `Night ${f.round} investigation` });
+      if (f.target === p.id) marks.push({ Icon: Eye, tone: f.isMafia ? 'text-blood' : 'text-town', label: f.isMafia ? 'Mafia' : 'Clear', title: `Night ${f.round} investigation` });
     }
     return marks;
   };
@@ -77,7 +78,8 @@ export default function GameScreen({ view }) {
                   video={videoFor(p)}
                   hostControls={
                     isHost && p.id !== view.youId && DAY_TALK.has(view.phase) && p.alive ? (
-                      <button className="rounded-full bg-black/70 px-2 py-0.5 text-xs hover:bg-black" onClick={() => muteToggle(p.id, !p.hostMuted)}>
+                      <button className="flex min-h-8 cursor-pointer items-center gap-1 rounded-full border border-black bg-black/80 px-3 py-1 text-xs font-bold hover:bg-black" onClick={() => muteToggle(p.id, !p.hostMuted)}>
+                        {p.hostMuted ? <Volume2 className="h-3.5 w-3.5" aria-hidden="true" /> : <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />}
                         {p.hostMuted ? 'Unmute' : 'Mute'}
                       </button>
                     ) : null

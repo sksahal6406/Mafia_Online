@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Eye as EyeIcon, LogOut, RotateCcw, Skull, Trophy } from 'lucide-react';
 import { roleInfo } from '@/lib/roles';
+import { RoleIcon } from '../ui/icons';
 import { useGame } from '@/lib/store';
 
 export default function GameOver({ view, onClose }) {
@@ -14,8 +16,9 @@ export default function GameOver({ view, onClose }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-ink/90 px-4 py-8">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card w-full max-w-lg text-center">
+        <Trophy className={`mx-auto mb-2 h-12 w-12 ${mafiaWon ? 'text-blood' : 'text-town'}`} aria-hidden="true" />
         <p className="label">Game over</p>
-        <h2 className={`font-display text-4xl ${mafiaWon ? 'text-blood' : 'text-town'}`}>
+        <h2 className={`font-display text-5xl font-bold ${mafiaWon ? 'text-blood' : 'text-town'}`}>
           {mafiaWon ? 'The Mafia wins!' : 'The Town wins!'}
         </h2>
         <p className="mt-2 text-mute">
@@ -26,9 +29,9 @@ export default function GameOver({ view, onClose }) {
           {view.players.map((p) => {
             const info = roleInfo(roles[p.id] ?? p.role);
             return (
-              <li key={p.id} className={`flex items-center justify-between rounded-lg border border-line bg-panel-2 px-3 py-2 ${p.alive ? '' : 'opacity-60'}`}>
-                <span className="truncate">{p.alive ? '' : '💀 '}{p.name}</span>
-                <span className={`shrink-0 ${info.color}`}>{info.emoji} {info.name}</span>
+              <li key={p.id} className={`flex items-center justify-between gap-2 rounded-xl border-2 border-line bg-panel-2 px-3 py-2 ${p.alive ? '' : 'opacity-60'}`}>
+                <span className="flex min-w-0 items-center gap-1.5 truncate font-semibold">{!p.alive && <Skull className="h-4 w-4 shrink-0" aria-label="Eliminated" />}{p.name}</span>
+                <span className={`flex shrink-0 items-center gap-1 font-bold ${info.color}`}><RoleIcon role={roles[p.id] ?? p.role} className="h-4 w-4" /> {info.name}</span>
               </li>
             );
           })}
@@ -48,12 +51,12 @@ export default function GameOver({ view, onClose }) {
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           {isHost ? (
-            <button className="btn-primary" onClick={resetGame}>Play again</button>
+            <button className="btn-primary" onClick={resetGame}><RotateCcw className="h-5 w-5" aria-hidden="true" /> Play again</button>
           ) : (
             <span className="self-center text-sm text-mute">Waiting for the host to start a new game…</span>
           )}
-          <button className="btn-ghost" onClick={onClose}>View table</button>
-          <button className="btn-ghost" onClick={leave}>Leave</button>
+          <button className="btn-ghost" onClick={onClose}><EyeIcon className="h-5 w-5" aria-hidden="true" /> View table</button>
+          <button className="btn-ghost" onClick={leave}><LogOut className="h-5 w-5" aria-hidden="true" /> Leave</button>
         </div>
       </motion.div>
     </div>

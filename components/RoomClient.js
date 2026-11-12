@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useGame } from '@/lib/store';
@@ -33,19 +34,19 @@ export default function RoomClient({ code }) {
   if (kicked) {
     return (
       <Centered>
-        <p className="mb-4 text-lg">You were removed from the room.</p>
+        <p className="mb-4 font-display text-2xl font-semibold">The host showed you the door.</p>
         <button className="btn-primary" onClick={() => router.push('/')}>Back home</button>
       </Centered>
     );
   }
-  if (!checked) return <Centered><p className="text-mute">Connecting…</p></Centered>;
+  if (!checked) return <Centered><p className="flex items-center gap-2 font-semibold text-mute"><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> Finding your seat…</p></Centered>;
   if (!view) return <JoinGate code={code} />;
 
   return (
     <>
       {status === 'disconnected' && (
-        <div className="fixed inset-x-0 top-0 z-50 bg-gold px-4 py-2 text-center text-sm font-semibold text-black">
-          Connection lost. Reconnecting…
+        <div role="status" className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 bg-gold px-4 py-2 text-center text-sm font-bold text-black">
+          <WifiOff className="h-4 w-4" aria-hidden="true" /> Connection lost. Reconnecting…
         </div>
       )}
       <RemoteAudio view={view} />

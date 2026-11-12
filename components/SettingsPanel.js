@@ -1,19 +1,30 @@
 'use client';
 
+import { Minus, Plus, Video, VideoOff } from 'lucide-react';
 import { useGame } from '@/lib/store';
+import { RoleIcon } from './ui/icons';
+import { ROLE_INFO } from '@/lib/roles';
 
 const fmt = (s) => (s >= 60 ? `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ''}` : `${s}s`);
 
-function Stepper({ label, value, onChange, step = 1, min, max, format = String, disabled }) {
+const stepBtn =
+  'flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-2 border-line bg-panel-2 transition hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-line disabled:hover:text-inherit';
+
+function Stepper({ label, icon, role, value, onChange, step = 1, min, max, format = String, disabled }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <span className="text-sm">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="flex items-center gap-2 text-sm font-semibold">
+        {role && <RoleIcon role={role} className={`h-4 w-4 ${ROLE_INFO[role].color}`} />}
+        {label}
+      </span>
       <div className="flex items-center gap-2">
-        <button className="h-8 w-8 rounded-lg border border-line bg-panel-2 text-lg leading-none hover:border-mute disabled:opacity-30"
-          disabled={disabled || value <= min} onClick={() => onChange(value - step)} aria-label={`Decrease ${label}`}>−</button>
-        <span className="w-14 text-center font-mono text-sm">{format(value)}</span>
-        <button className="h-8 w-8 rounded-lg border border-line bg-panel-2 text-lg leading-none hover:border-mute disabled:opacity-30"
-          disabled={disabled || value >= max} onClick={() => onChange(value + step)} aria-label={`Increase ${label}`}>+</button>
+        <button className={stepBtn} disabled={disabled || value <= min} onClick={() => onChange(value - step)} aria-label={`Decrease ${label}`}>
+          <Minus className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <span className="w-12 text-center font-mono text-sm font-bold" aria-live="polite">{format(value)}</span>
+        <button className={stepBtn} disabled={disabled || value >= max} onClick={() => onChange(value + step)} aria-label={`Increase ${label}`}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </button>
       </div>
     </div>
   );
@@ -29,30 +40,42 @@ export default function SettingsPanel({ view, isHost }) {
 
   return (
     <section className="card">
-      <h2 className="mb-1 font-display text-2xl">Game rules</h2>
-      <p className="mb-3 text-xs text-mute">{isHost ? 'You control these settings.' : 'Only the host can change these.'}</p>
+      <h2 className="font-display text-2xl font-semibold">Game rules</h2>
+      <p className="mb-3 text-xs text-mute">{isHost ? 'You are the host, so these are yours to change.' : 'Only the host can change these.'}</p>
 
-      <div className="divide-y divide-line">
-        <div>
-          <Stepper label="🔪 Mafia" value={s.mafia} min={1} max={4} disabled={off} onChange={(v) => set({ mafia: v })} />
-          <Stepper label="💉 Doctors" value={s.doctor} min={0} max={2} disabled={off} onChange={(v) => set({ doctor: v })} />
-          <Stepper label="🔍 Detectives" value={s.detective} min={0} max={2} disabled={off} onChange={(v) => set({ detective: v })} />
-          <div className="flex justify-between py-2 text-sm text-mute">
-            <span>👤 Civilians</span>
-            <span className="pr-2 font-mono">{civilians}</span>
+      <div className="divide-y-2 divide-line">
+        <div className="pb-2">
+          <Stepper label="Mafia" role="mafia" value={s.mafia} min={1} max={4} disabled={off} onChange={(v) => set({ mafia: v })} />
+          <Stepper label="Doctors" role="doctor" value={s.doctor} min={0} max={2} disabled={off} onChange={(v) => set({ doctor: v })} />
+          <Stepper label="Detectives" role="detective" value={s.detective} min={0} max={2} disabled={off} onChange={(v) => set({ detective: v })} />
+          <div className="flex items-center justify-between py-1.5 text-sm text-mute">
+            <span className="flex items-center gap-2 font-semibold"><RoleIcon role="civilian" className="h-4 w-4" /> Civilians (the rest)</span>
+            <span className="pr-1 font-mono font-bold">{civilians}</span>
           </div>
         </div>
-        <div className="flex items-center justify-between py-3">
-          <div>
-            <p className="text-sm">📹 Allow video</p>
-            <p className="text-xs text-mute">{s.video ? "Cameras and mics" : "Audio only, no cameras"}</p>
+
+        <div className="flex items-center justify-between gap-3 py-3">
+          <div className="flex items-center gap-2">
+            {s.video ? <Video className="h-5 w-5 text-town" aria-hidden="true" /> : <VideoOff className="h-5 w-5 text-mute" aria-hidden="true" />}
+            <div>
+              <p className="text-sm font-semibold">Video</p>
+              <p className="text-xs text-mute">{s.video ? 'Cameras and mics' : 'Audio only, no cameras'}</p>
+            </div>
           </div>
-          <button role="switch" aria-checked={s.video} disabled={off} onClick={() => set({ video: !s.video })}
-            className={`relative h-7 w-12 rounded-full transition disabled:opacity-50 ${s.video ? "bg-blood" : "bg-line"}`}>
-            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${s.video ? "left-6" : "left-1"}`} />
+          <button
+            role="switch"
+            aria-checked={s.video}
+            aria-label="Allow video"
+            disabled={off}
+            onClick={() => set({ video: !s.video })}
+            className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-black transition disabled:cursor-not-allowed disabled:opacity-50 ${s.video ? 'bg-town' : 'bg-line'}`}
+          >
+            <span className={`absolute top-0.5 h-6 w-6 rounded-full border-2 border-black bg-bone transition-all ${s.video ? 'left-[1.5rem]' : 'left-0.5'}`} />
           </button>
         </div>
+
         <div className="pt-2">
+          <p className="label mt-1">Timers</p>
           <Stepper label="Night action" value={s.timers.night} min={15} max={120} step={5} format={fmt} disabled={off} onChange={setTimer('night')} />
           <Stepper label="Discussion" value={s.timers.discussion} min={30} max={600} step={15} format={fmt} disabled={off} onChange={setTimer('discussion')} />
           <Stepper label="Voting" value={s.timers.vote} min={10} max={120} step={5} format={fmt} disabled={off} onChange={setTimer('vote')} />
