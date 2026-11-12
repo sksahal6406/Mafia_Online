@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #09090d;
+  --color-panel: #12121a;
+  --color-panel-2: #1a1a25;
+  --color-line: #2a2a38;
+  --color-bone: #ece7dc;
+  --color-mute: #8d8a99;
+  --color-blood: #c8323c;
+  --color-blood-dark: #8f1f28;
+  --color-gold: #d4a64a;
+  --color-night: #5b7cff;
+  --color-town: #4cc38a;
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(200, 50, 60, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 100% 100%, rgba(91, 124, 255, 0.08), transparent 60%),
+    var(--color-ink);
+  color: var(--color-bone);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.card {
+  @apply rounded-2xl border border-line bg-panel/90 backdrop-blur p-5 shadow-xl shadow-black/30;
+}
+
+.input {
+  @apply w-full rounded-xl border border-line bg-panel-2 px-4 py-3 text-bone placeholder:text-mute outline-none transition focus:border-blood focus:ring-2 focus:ring-blood/30;
+}
+
+
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 bg-blood text-white hover:bg-blood-dark;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 border border-line bg-panel-2 text-bone hover:border-mute;
+}
+
+.label {
+  @apply mb-1.5 block text-xs font-semibold uppercase tracking-widest text-mute;
+}
