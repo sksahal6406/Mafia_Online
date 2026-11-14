@@ -1,17 +1,21 @@
 'use client';
 
-import { Users } from 'lucide-react';
+import { Pause, Play, Plus, SkipForward, Users } from 'lucide-react';
 import { phaseTitle } from '@/lib/phases';
+import { useGame } from '@/lib/store';
 import { clock, useCountdown } from '@/lib/useCountdown';
 import { PhaseIcon } from '../ui/icons';
 
 export default function PhaseBar({ view, night }) {
+  const { skipPhase, pauseTimer, resumeTimer, extendTimer } = useGame();
   const { title, subtitle } = phaseTitle(view.phase);
-  const ms = useCountdown(view.deadline);
+  const ms = useCountdown(view.deadline, { paused: view.paused, remainingMs: view.pausedRemainingMs });
   const total = Math.max(view.phaseDuration * 1000, ms, 1);
   const pct = view.deadline ? Math.min(100, (ms / total) * 100) : 0;
-  const urgent = view.deadline && ms < 10_000;
+  const urgent = view.deadline && !view.paused && ms < 10_000;
   const alive = view.players.filter((p) => p.alive).length;
+  const isHost = view.hostId === view.youId;
+  const showControls = isHost && view.timerControllable;
 
   return (
     <header className={`border-b-2 px-4 py-3 transition-colors duration-1000 ${night ? 'border-night/30 bg-[#0a0d1f]' : 'border-line bg-panel'}`}>
@@ -38,17 +42,56 @@ export default function PhaseBar({ view, night }) {
             <span
               role="timer"
               className={`rounded-xl border-2 px-3 py-1 font-mono text-2xl font-bold tabular-nums sm:text-3xl ${
-                urgent ? 'animate-pulse border-blood bg-blood/15 text-blood' : 'border-line bg-panel-2 text-bone'
+                urgent ? 'animate-pulse border-blood bg-blood/15 text-blood' : view.paused ? 'border-gold bg-gold/15 text-gold' : 'border-line bg-panel-2 text-bone'
               }`}
             >
-              {clock(ms)}
+              {view.paused ? 'Paused' : clock(ms)}
             </span>
+          )}
+          {showControls && (
+            <div className="flex items-center gap-1.5">
+              {view.paused ? (
+                <button
+                  className="chip cursor-pointer hover:bg-gold/20"
+                  title="Resume the timer"
+                  onClick={() => resumeTimer()}
+                >
+                  <Play className="h-3.5 w-3.5" aria-hidden="true" /> Resume
+                </button>
+              ) : (
+                <button
+                  className="chip cursor-pointer hover:bg-gold/20"
+                  title="Pause the timer"
+                  onClick={() => pauseTimer()}
+                >
+                  <Pause className="h-3.5 w-3.5" aria-hidden="true" /> Pause
+                </button>
+              )}
+              <button
+                className="chip cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gold/20"
+                title="Add 30 seconds"
+                disabled={view.extendsLeft <= 0}
+                onClick={() => extendTimer(30_000)}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" /> 30s
+              </button>
+              <button
+                className="chip cursor-pointer hover:bg-gold/20"
+                title="Skip to the next phase"
+                onClick={() => skipPhase()}
+              >
+                <SkipForward className="h-3.5 w-3.5" aria-hidden="true" /> Skip
+              </button>
+            </div>
           )}
         </div>
       </div>
       {view.deadline && (
         <div className="mx-auto mt-3 h-2 max-w-[1500px] overflow-hidden rounded-full border border-black bg-line">
-          <div className={`h-full rounded-full transition-[width] duration-300 ease-linear ${urgent ? 'bg-blood' : 'bg-gold'}`} style={{ width: `${pct}%` }} />
+          <div
+            className={`h-full rounded-full transition-[width] duration-300 ease-linear ${urgent ? 'bg-blood' : view.paused ? 'bg-gold/50' : 'bg-gold'}`}
+            style={{ width: `${pct}%` }}
+          />
         </div>
       )}
     </header>

@@ -51,3 +51,7 @@ export const FIXED_DURATIONS = {
   [PHASES.DAY_ANNOUNCE]: 8,
   [PHASES.DAY_RESULT]: 8,
 };
+
+// How many times a host may extend a single phase's clock.
+export const MAX_PHASE_EXTENDS = 3;
+export const ALLOWED_EXTEND_MS = [15_000, 30_000, 60_000];

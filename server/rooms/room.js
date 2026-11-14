@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { MAX_PLAYERS, MIN_PLAYERS, PHASES } from '../engine/constants.js';
+import { ALLOWED_EXTEND_MS, FIXED_DURATIONS, MAX_PHASE_EXTENDS, MAX_PLAYERS, MIN_PLAYERS, PHASES } from '../engine/constants.js';
 import { act, createGame, endPhase, isPhaseComplete } from '../engine/game.js';
 import { defaultSettings, mergeSettings, validateSettings } from '../engine/settings.js';
 import { viewFor } from '../views/viewFor.js';
@@ -8,6 +8,7 @@ import { canRead, channelForSender } from './chat.js';
 const EARLY_CLOSE_MS = 1200; // grace period after everyone has acted
 const DISCONNECT_GRACE_MS = 60_000;
 const MAX_CHAT = 200;
+const MAX_PAUSE_MS = 5 * 60_000; // auto-resume so a host can't stall the game forever
 
 const id = (bytes = 4) => randomBytes(bytes).toString('hex');
 
@@ -27,6 +28,10 @@ export class Room {
     this.game = null;
     this.deadline = null;
     this.timer = null;
+    this.paused = false;
+    this.pausedRemainingMs = null;
+    this.extendCount = 0;
+    this.pauseWatchdog = null;
     this.hostMuted = new Set();
     this.chat = [];
     this.lastActive = Date.now();
@@ -134,8 +139,12 @@ export class Room {
   reset() {
     if (!this.game || this.game.phase !== PHASES.GAME_OVER) return { error: 'The game is not over.' };
     clearTimeout(this.timer);
+    clearTimeout(this.pauseWatchdog);
     this.game = null;
     this.deadline = null;
+    this.paused = false;
+    this.pausedRemainingMs = null;
+    this.extendCount = 0;
     this.hostMuted.clear();
     this.chat = [];
     this.players = this.players.filter((p) => p.connected);
@@ -170,6 +179,7 @@ export class Room {
   }
 
   closeEarly() {
+    if (this.paused) return; // resume will run out the remainder; good enough for this edge case
     const soon = Date.now() + EARLY_CLOSE_MS * this.timeScale;
     if (this.deadline && this.deadline <= soon) return;
     this.deadline = soon;
@@ -178,6 +188,10 @@ export class Room {
 
   startClock() {
     clearTimeout(this.timer);
+    clearTimeout(this.pauseWatchdog);
+    this.paused = false;
+    this.pausedRemainingMs = null;
+    this.extendCount = 0;
     const g = this.game;
     if (!g || g.phase === PHASES.GAME_OVER || !g.phaseDuration) {
       this.deadline = null;
@@ -197,6 +211,56 @@ export class Room {
     endPhase(this.game);
     this.startClock();
     this.broadcast();
+  }
+
+  /** Phases with a host-configurable timer are the only ones a host may skip/pause/extend. */
+  canControlClock() {
+    return !!this.game && this.game.phase !== PHASES.GAME_OVER && !FIXED_DURATIONS[this.game.phase];
+  }
+
+  skipPhase() {
+    if (!this.canControlClock()) return { error: 'This phase cannot be skipped.' };
+    clearTimeout(this.timer);
+    this.advance(); // same transition a natural timeout would take, just triggered now
+    return {};
+  }
+
+  pauseTimer() {
+    if (!this.canControlClock()) return { error: 'The timer cannot be paused right now.' };
+    if (this.paused) return { error: 'The timer is already paused.' };
+    clearTimeout(this.timer);
+    this.pausedRemainingMs = Math.max(0, this.deadline - Date.now());
+    this.paused = true;
+    this.pauseWatchdog = setTimeout(() => {
+      if (!this.paused) return;
+      this.resumeTimer();
+      this.broadcast();
+    }, MAX_PAUSE_MS * this.timeScale);
+    return {};
+  }
+
+  resumeTimer() {
+    if (!this.paused) return { error: 'The timer is not paused.' };
+    clearTimeout(this.pauseWatchdog);
+    this.deadline = Date.now() + this.pausedRemainingMs;
+    this.pausedRemainingMs = null;
+    this.paused = false;
+    this.armTimer();
+    return {};
+  }
+
+  extendTimer(ms) {
+    if (!this.canControlClock()) return { error: 'The timer cannot be extended right now.' };
+    if (!ALLOWED_EXTEND_MS.includes(ms)) return { error: 'Invalid extension amount.' };
+    if (this.extendCount >= MAX_PHASE_EXTENDS) return { error: 'This phase has already been extended the maximum number of times.' };
+    this.extendCount += 1;
+    const scaled = ms * this.timeScale;
+    if (this.paused) this.pausedRemainingMs += scaled;
+    else {
+      this.deadline += scaled;
+      this.armTimer();
+    }
+    return {};
   }
 
   // ---------- chat ----------
@@ -243,6 +307,7 @@ export class Room {
 
   destroy() {
     clearTimeout(this.timer);
+    clearTimeout(this.pauseWatchdog);
     for (const t of this.disconnectTimers.values()) clearTimeout(t);
   }
 }

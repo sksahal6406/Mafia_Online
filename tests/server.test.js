@@ -184,3 +184,88 @@ describe('video setting', () => {
     clients.forEach((c) => c.socket.close());
   });
 });
+
+describe('host clock controls', () => {
+  it('rejects skip/pause/extend during the non-skippable role_reveal phase', async () => {
+    const { clients, host } = await lobby(6);
+    await host.emit('room:settings', { timers: { night: 120 } });
+    await host.emit('game:start', {});
+    expect(host.view.phase).toBe('role_reveal');
+    expect(host.view.timerControllable).toBe(false);
+    expect((await host.emit('game:skipPhase', {})).ok).toBe(false);
+    expect((await host.emit('game:pauseTimer', {})).ok).toBe(false);
+    expect((await host.emit('game:extendTimer', { ms: 30_000 })).ok).toBe(false);
+    clients.forEach((c) => c.socket.close());
+  });
+
+  it('only the host can skip, pause, resume, or extend', async () => {
+    const { clients, host } = await lobby(6);
+    await host.emit('room:settings', { timers: { night: 120 } });
+    await host.emit('game:start', {});
+    await waitFor(() => host.view.phase === 'night_mafia');
+    const other = clients[1];
+    expect((await other.emit('game:skipPhase', {})).ok).toBe(false);
+    expect((await other.emit('game:pauseTimer', {})).ok).toBe(false);
+    expect((await other.emit('game:resumeTimer', {})).ok).toBe(false);
+    expect((await other.emit('game:extendTimer', { ms: 30_000 })).ok).toBe(false);
+    clients.forEach((c) => c.socket.close());
+  });
+
+  it('skipPhase moves on immediately, same as a natural timeout', async () => {
+    const { clients, host } = await lobby(6);
+    await host.emit('room:settings', { timers: { night: 120 } });
+    await host.emit('game:start', {});
+    await waitFor(() => host.view.phase === 'night_mafia');
+    expect((await host.emit('game:skipPhase', {})).ok).toBe(true);
+    await waitFor(() => host.view.phase === 'night_doctor');
+    clients.forEach((c) => c.socket.close());
+  });
+
+  it('pause freezes the clock and resume picks up with the same remaining time', async () => {
+    const { clients, host } = await lobby(6);
+    await host.emit('room:settings', { timers: { night: 120 } });
+    await host.emit('game:start', {});
+    await waitFor(() => host.view.phase === 'night_mafia');
+
+    expect((await host.emit('game:pauseTimer', {})).ok).toBe(true);
+    await waitFor(() => host.view.paused === true);
+    const remaining = host.view.pausedRemainingMs;
+    expect(remaining).toBeGreaterThan(0);
+
+    // Pausing again should fail, and the phase must not advance while paused.
+    expect((await host.emit('game:pauseTimer', {})).ok).toBe(false);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(host.view.phase).toBe('night_mafia');
+    expect(host.view.pausedRemainingMs).toBe(remaining);
+
+    expect((await host.emit('game:resumeTimer', {})).ok).toBe(true);
+    await waitFor(() => host.view.paused === false);
+    expect(host.view.deadline).toBeGreaterThan(Date.now());
+    clients.forEach((c) => c.socket.close());
+  });
+
+  it('extendTimer pushes the deadline out and is capped per phase', async () => {
+    const { clients, host } = await lobby(6);
+    await host.emit('room:settings', { timers: { night: 120 } });
+    await host.emit('game:start', {});
+    await waitFor(() => host.view.phase === 'night_mafia');
+
+    expect((await host.emit('game:extendTimer', { ms: 999 })).ok).toBe(false); // not an allowed increment
+
+    const before = host.view.deadline;
+    expect((await host.emit('game:extendTimer', { ms: 30_000 })).ok).toBe(true);
+    await waitFor(() => host.view.deadline > before);
+    expect(host.view.extendsLeft).toBe(2);
+
+    await host.emit('game:extendTimer', { ms: 30_000 });
+    await host.emit('game:extendTimer', { ms: 30_000 });
+    await waitFor(() => host.view.extendsLeft === 0);
+    expect((await host.emit('game:extendTimer', { ms: 30_000 })).ok).toBe(false);
+
+    // A fresh phase resets the extend budget.
+    await host.emit('game:skipPhase', {});
+    await waitFor(() => host.view.phase === 'night_doctor');
+    expect(host.view.extendsLeft).toBe(3);
+    clients.forEach((c) => c.socket.close());
+  });
+});

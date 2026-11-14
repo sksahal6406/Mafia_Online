@@ -80,6 +80,10 @@ export function attachSocket(io, opts = {}) {
     handle('room:settings', (room, _p, patch) => room.setSettings(patch), { host: true });
     handle('game:start', (room) => room.start(), { host: true });
     handle('game:reset', (room) => room.reset(), { host: true });
+    handle('game:skipPhase', (room) => room.skipPhase(), { host: true });
+    handle('game:pauseTimer', (room) => room.pauseTimer(), { host: true });
+    handle('game:resumeTimer', (room) => room.resumeTimer(), { host: true });
+    handle('game:extendTimer', (room, _p, { ms }) => room.extendTimer(ms), { host: true });
 
     handle('host:kick', (room, _p, { playerId }) => {
       const res = room.kick(playerId);

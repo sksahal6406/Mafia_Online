@@ -1,4 +1,4 @@
-import { PHASES, ROLES } from '../engine/constants.js';
+import { MAX_PHASE_EXTENDS, PHASES, ROLES } from '../engine/constants.js';
 import { mediaPolicyFor } from '../media/policy.js';
 import { channelForSender } from '../rooms/chat.js';
 
@@ -45,6 +45,10 @@ export function viewFor(room, playerId) {
     round: g ? g.round : 0,
     phaseDuration: g ? g.phaseDuration : 0,
     deadline: room.deadline,
+    paused: room.paused,
+    pausedRemainingMs: room.pausedRemainingMs,
+    timerControllable: room.canControlClock(),
+    extendsLeft: Math.max(0, MAX_PHASE_EXTENDS - room.extendCount),
     serverNow: Date.now(),
     winner: over ? g.winner : null,
     players,
